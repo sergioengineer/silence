@@ -33,7 +33,6 @@
 *
 **********************************************************************************************/
 
-#define RAYLIB_NUKLEAR_IMPLEMENTATION
 #ifndef RAYLIB_NUKLEAR_H
 #define RAYLIB_NUKLEAR_H
 

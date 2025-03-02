@@ -38,7 +38,6 @@ pub fn build(b: *std.Build) void {
 
     exe.addIncludePath(b.path("include/"));
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/" });
-    exe.addCSourceFile(.{ .file = b.path("source_c/raylib-nuclear.c") });
     exe.addLibraryPath(b.path("lib"));
     exe.linkSystemLibrary("raylib");
     exe.linkLibC();
