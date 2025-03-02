@@ -1,15 +1,7 @@
 const std = @import("std");
+
 const c = @cImport({
-    @cInclude("defines.h");
-    @cInclude("raylib-nuklear.h");
+    @cInclude("gtk-4.0/gtk/gtk.h");
 });
 
-pub fn main() !void {
-    c.InitWindow(640, 480, "raylib example");
-
-    while (c.WindowShouldClose() == false) {
-        c.BeginDrawing();
-        c.ClearBackground(c.RAYWHITE);
-        c.EndDrawing();
-    }
-}
+pub fn main() !void {}

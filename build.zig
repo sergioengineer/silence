@@ -23,9 +23,19 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.addIncludePath(b.path("include/"));
-    exe.addIncludePath(.{ .cwd_relative = "/usr/include/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/gtk-4.0/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/glib-2.0/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/cairo/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/pango-1.0/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/gdk-pixbuf-2.0/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/atk-1.0/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/gobject-introspection-1.0/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/epoxy/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/harfbuzz/" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/graphene-1.0" });
+    exe.addIncludePath(.{ .cwd_relative = "/usr/include/graphene-1.0/include/" });
     exe.addLibraryPath(b.path("lib"));
-    exe.linkSystemLibrary("raylib");
+    exe.linkSystemLibrary("gtk-4");
     exe.linkLibC();
 
     // This declares intent for the executable to be installed into the
