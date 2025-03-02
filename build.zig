@@ -35,7 +35,7 @@ pub fn build(b: *std.Build) void {
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/graphene-1.0" });
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/graphene-1.0/include/" });
     exe.addLibraryPath(b.path("lib"));
-    exe.linkSystemLibrary("gtk-4");
+    exe.linkSystemLibrary("gtk4");
     exe.linkLibC();
 
     // This declares intent for the executable to be installed into the
