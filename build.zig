@@ -35,7 +35,12 @@ pub fn build(b: *std.Build) void {
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/graphene-1.0" });
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/graphene-1.0/include/" });
     exe.addLibraryPath(b.path("lib"));
+    exe.addLibraryPath(.{ .cwd_relative = "/usr/lib/x86_64-linux-gnu" });
     exe.linkSystemLibrary("gtk4");
+    exe.linkSystemLibrary("cairo");
+    exe.linkSystemLibrary("pango");
+    exe.linkSystemLibrary("pulse");
+    exe.linkSystemLibrary("pulse-mainloop-glib");
     exe.linkLibC();
 
     // This declares intent for the executable to be installed into the
