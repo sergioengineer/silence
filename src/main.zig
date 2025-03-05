@@ -1,7 +1,5 @@
 const std = @import("std");
-const gtk = @cImport({
-    @cInclude("gtk-4.0/gtk/gtk.h");
-});
+const gtk = @import("translations/gtk.zig");
 const gvcAtHome = @import("gvcathome.zig");
 
 fn activate(app: *gtk.GtkApplication, _: gtk.gpointer) callconv(.C) void {
