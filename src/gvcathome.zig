@@ -90,19 +90,27 @@ fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) vo
         return;
     }
 
-    _ = pulse.pa_context_get_sink_input_info_list(pulse_connection.?.context, @ptrCast(&sinkInfoCallback), null) orelse {
+    const operation_sink = pulse.pa_context_get_sink_input_info_list(pulse_connection.?.context, @ptrCast(&sinkInfoCallback), null) orelse {
         std.log.debug("Info sink error", .{});
+        return;
     };
+    pulse.pa_operation_unref(operation_sink);
 
-    _ = pulse.pa_context_get_client_info_list(pulse_connection.?.context, @ptrCast(&clientInfoCallback), null) orelse {
+    const operation_client = pulse.pa_context_get_client_info_list(pulse_connection.?.context, @ptrCast(&clientInfoCallback), null) orelse {
         std.log.debug("Info client error", .{});
+        return;
     };
+    pulse.pa_operation_unref(operation_client);
 
-    _ = pulse.pa_context_get_card_info_list(pulse_connection.?.context, @ptrCast(&cardInfoCallback), null) orelse {
+    const operation_card = pulse.pa_context_get_card_info_list(pulse_connection.?.context, @ptrCast(&cardInfoCallback), null) orelse {
         std.log.debug("Info card error", .{});
+        return;
     };
+    pulse.pa_operation_unref(operation_card);
 
-    _ = pulse.pa_context_get_source_output_info_list(pulse_connection.?.context, @ptrCast(&outputInfoCallback), null) orelse {
+    const operation_output = pulse.pa_context_get_source_output_info_list(pulse_connection.?.context, @ptrCast(&outputInfoCallback), null) orelse {
         std.log.debug("Output card error", .{});
+        return;
     };
+    pulse.pa_operation_unref(operation_output);
 }
