@@ -22,7 +22,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    exe.addIncludePath(b.path("c_headers/"));
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/gtk-4.0/" });
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/glib-2.0/" });
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/cairo/" });
@@ -34,7 +33,6 @@ pub fn build(b: *std.Build) void {
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/harfbuzz/" });
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/graphene-1.0" });
     exe.addIncludePath(.{ .cwd_relative = "/usr/include/graphene-1.0/include/" });
-    exe.addLibraryPath(b.path("lib"));
     exe.addLibraryPath(.{ .cwd_relative = "/usr/lib/x86_64-linux-gnu" });
     exe.linkSystemLibrary("gtk4");
     exe.linkSystemLibrary("cairo");
