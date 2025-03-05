@@ -39,31 +39,70 @@ pub fn connect() !void {
     std.log.debug("finished setup", .{});
 }
 
-fn sinkInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.struct_pa_sink_input_info, code: c_int, _: ?*anyopaque) callconv(.C) void {
-    std.log.debug("sinkInfoCallback", .{});
-    _ = code;
+fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info, eol: c_int, _: ?*anyopaque) callconv(.C) void {
+    _ = eol;
     _ = context;
     if (info == null) {
-        std.log.debug("no info", .{});
         return;
     }
 
     const name = info.?.name;
-    std.log.debug("Name: {s}", .{name});
+    std.log.debug("Client name: {s}", .{name});
+}
+
+fn cardInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_card_info, eol: c_int, _: ?*anyopaque) callconv(.C) void {
+    _ = eol;
+    _ = context;
+    if (info == null) {
+        return;
+    }
+
+    const name = info.?.name;
+    std.log.debug("Card name: {s}", .{name});
+}
+
+fn outputInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_source_output_info, eol: c_int, _: ?*anyopaque) callconv(.C) void {
+    _ = eol;
+    _ = context;
+    if (info == null) {
+        return;
+    }
+
+    const name = info.?.name;
+    std.log.debug("Output name: {s}", .{name});
+}
+
+fn sinkInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.struct_pa_sink_input_info, eol: c_int, _: ?*anyopaque) callconv(.C) void {
+    _ = eol;
+    _ = context;
+    if (info == null) {
+        return;
+    }
+
+    const name = info.?.name;
+    std.log.debug("Sink name: {s}", .{name});
 }
 
 fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) void {
     std.log.debug("contextStateCallback", .{});
     const status = pulse.pa_context_get_state(ctx.?);
     if (status != pulse.PA_CONTEXT_READY) {
-        //TODO: something other than Opsie
-        std.debug.print("Opsie", .{});
         return;
     }
 
     _ = pulse.pa_context_get_sink_input_info_list(pulse_connection.?.context, @ptrCast(&sinkInfoCallback), null) orelse {
-        std.log.debug("Info plist error", .{});
+        std.log.debug("Info sink error", .{});
     };
 
-    std.debug.print("yay", .{});
+    _ = pulse.pa_context_get_client_info_list(pulse_connection.?.context, @ptrCast(&clientInfoCallback), null) orelse {
+        std.log.debug("Info client error", .{});
+    };
+
+    _ = pulse.pa_context_get_card_info_list(pulse_connection.?.context, @ptrCast(&cardInfoCallback), null) orelse {
+        std.log.debug("Info card error", .{});
+    };
+
+    _ = pulse.pa_context_get_source_output_info_list(pulse_connection.?.context, @ptrCast(&outputInfoCallback), null) orelse {
+        std.log.debug("Output card error", .{});
+    };
 }
