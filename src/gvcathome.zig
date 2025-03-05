@@ -31,16 +31,25 @@ pub fn connect() !void {
     pulse_connection = GvcAtHome{ .api = api, .context = context, .main_loop = mainloop };
     pulse.pa_proplist_free(proplist);
     pulse.pa_context_set_state_callback(context, &contextStateCallback, null);
+    const connection_result = pulse.pa_context_connect(context, null, pulse.PA_CONTEXT_NOFAIL, null);
+    if (connection_result < 0) {
+        std.log.debug("Connection failed", .{});
+    }
 
     std.log.debug("finished setup", .{});
 }
 
-fn sinkInfoCallback(context: ?*pulse.pa_context, info: [*c]const pulse.struct_pa_sink_input_info, code: c_int, _: ?*anyopaque) callconv(.C) void {
+fn sinkInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.struct_pa_sink_input_info, code: c_int, _: ?*anyopaque) callconv(.C) void {
     std.log.debug("sinkInfoCallback", .{});
-
-    _ = context;
-    _ = info;
     _ = code;
+    _ = context;
+    if (info == null) {
+        std.log.debug("no info", .{});
+        return;
+    }
+
+    const name = info.?.name;
+    std.log.debug("Name: {s}", .{name});
 }
 
 fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) void {
@@ -52,7 +61,7 @@ fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) vo
         return;
     }
 
-    _ = pulse.pa_context_get_sink_input_info_list(pulse_connection.?.context, &sinkInfoCallback, null) orelse {
+    _ = pulse.pa_context_get_sink_input_info_list(pulse_connection.?.context, @ptrCast(&sinkInfoCallback), null) orelse {
         std.log.debug("Info plist error", .{});
     };
 
