@@ -49,18 +49,18 @@ pub fn connect(client_available_callback: *const fn (Client) void) !void {
     std.log.debug("finished setup", .{});
 }
 
-fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info, eol: c_int, _: ?*anyopaque) callconv(.C) void {
+fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info, eol: c_int, data: ?*anyopaque) callconv(.C) void {
     _ = eol;
     _ = context;
-    if (info == null) {
+    _ = data;
+    if (info == null)
         return;
-    }
 
-    if (info.?.proplist == null) {
+    if (info.?.proplist == null)
         return;
-    }
 
-    if (pulse_connection == null) return;
+    if (pulse_connection == null)
+        return;
 
     if (pulse.pa_proplist_contains(info.?.proplist, "application.process.id") < 1)
         return;
