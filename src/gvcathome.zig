@@ -7,7 +7,7 @@ const GvcAtHome = struct { api: *pulse.struct_pa_mainloop_api, context: *pulse.s
 pub const Client = struct { id: usize, name: [*c]const u8, pid: usize };
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-var pulse_connection: GvcAtHome = undefined;
+var pulse_connection: ?GvcAtHome = null;
 var clients = std.AutoHashMap(usize, Client).init(gpa.allocator());
 
 pub fn destroy() void {
@@ -20,7 +20,15 @@ pub fn getClients() []Client {
     return items;
 }
 
+const ConnectError = error{
+    AlreadyConnected,
+};
+
 pub fn connect(client_available_callback: *const fn (Client) void) !void {
+    if (pulse_connection != null) {
+        return ConnectError.AlreadyConnected;
+    }
+
     const mainloop = pulse_glib.pa_glib_mainloop_new(pulse_glib.g_main_context_default()) orelse {
         std.log.err("Error while setting up the mainloop", .{});
         return;
@@ -28,8 +36,8 @@ pub fn connect(client_available_callback: *const fn (Client) void) !void {
     const api = pulse_glib.pa_glib_mainloop_get_api(mainloop);
 
     const proplist = pulse.pa_proplist_new();
-    _ = pulse.pa_proplist_sets(proplist, pulse.PA_PROP_APPLICATION_NAME, "Shut up messmer!");
-    _ = pulse.pa_proplist_sets(proplist, pulse.PA_PROP_APPLICATION_ID, "beaten.by.messmer.org");
+    _ = pulse.pa_proplist_sets(proplist, pulse.PA_PROP_APPLICATION_NAME, "Silence!");
+    _ = pulse.pa_proplist_sets(proplist, pulse.PA_PROP_APPLICATION_ID, "silence.org");
     _ = pulse.pa_proplist_sets(proplist, pulse.PA_PROP_APPLICATION_ICON_NAME, "audio-card");
     _ = pulse.pa_proplist_sets(proplist, pulse.PA_PROP_APPLICATION_VERSION, "0.0.1");
 
@@ -62,6 +70,9 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
     if (pulse.pa_proplist_contains(info.?.proplist, "application.process.id") < 1)
         return;
 
+    if (pulse_connection == null)
+        return;
+
     const pid_str = pulse.pa_proplist_gets(info.?.proplist, "application.process.id");
     const pid_fat: [:0]u8 = std.mem.span(@constCast(pid_str));
 
@@ -75,7 +86,7 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
         return;
     };
 
-    pulse_connection.client_available_callback(client);
+    pulse_connection.?.client_available_callback(client);
 }
 
 fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) void {
@@ -84,7 +95,7 @@ fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) vo
         return;
     }
 
-    const operation_client = pulse.pa_context_get_client_info_list(pulse_connection.context, @ptrCast(&clientInfoCallback), null) orelse {
+    const operation_client = pulse.pa_context_get_client_info_list(pulse_connection.?.context, @ptrCast(&clientInfoCallback), null) orelse {
         std.log.err("Info client error", .{});
         return;
     };

@@ -8,7 +8,7 @@ var ui: ?UI = null;
 fn activate(app: *gtk.GtkApplication, _: gtk.gpointer) callconv(.C) void {
     const window: *gtk.GtkWindow = @ptrCast(gtk.gtk_application_window_new(app));
 
-    gtk.gtk_window_set_title(window, "Window");
+    gtk.gtk_window_set_title(window, "Silence!");
     gtk.gtk_window_set_default_size(window, 800, 600);
 
     const list = gtk.gtk_list_box_new();
@@ -19,7 +19,9 @@ fn activate(app: *gtk.GtkApplication, _: gtk.gpointer) callconv(.C) void {
     gtk.gtk_window_set_child(window, @ptrCast(list));
     gtk.gtk_window_present(window);
 
-    try gvcAtHome.connect(&clientAvailableCallback);
+    gvcAtHome.connect(&clientAvailableCallback) catch {
+        return;
+    };
 }
 
 fn dispose(_: gtk.gpointer, _: ?*gtk.GClosure) callconv(.C) void {}
@@ -33,18 +35,24 @@ pub fn main() !void {
 }
 
 fn clientAvailableCallback(client: gvcAtHome.Client) void {
-    std.log.info("Client available: {s} ", .{client.name});
-
     if (ui == null) {
         return;
     }
+
+    std.log.info("Client available: {s} ", .{client.name});
 
     createClientElement(client);
 }
 
 fn createClientElement(client: gvcAtHome.Client) void {
     if (ui == null) return;
-    const item = gtk.gtk_label_new(client.name);
 
-    gtk.gtk_list_box_append(ui.?.list_box, item);
+    const container: *gtk.GtkGrid = @ptrCast(gtk.gtk_grid_new());
+    const checkbox = gtk.gtk_check_button_new();
+    const label = gtk.gtk_label_new(client.name);
+
+    gtk.gtk_grid_attach(container, checkbox, 0, 1, 1, 1);
+    gtk.gtk_grid_attach(container, label, 1, 1, 2, 1);
+
+    gtk.gtk_list_box_append(ui.?.list_box, @ptrCast(container));
 }
