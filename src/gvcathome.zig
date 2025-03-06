@@ -72,7 +72,7 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
     const proplist = pulse.pa_proplist_to_string(info.?.proplist);
     std.log.debug("Client name: {s}, id: {}, pid: {}, prop: {s}", .{ name, info.?.index, pid, proplist });
 
-    clients.put(info.?.index, Client{ .id = info.?.index, .name = info.?.name, .pid = info.?.owner_module }) catch {
+    clients.put(info.?.index, Client{ .id = info.?.index, .name = info.?.name, .pid = pid }) catch {
         return;
     };
 }
