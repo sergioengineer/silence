@@ -24,8 +24,12 @@ fn dispose(_: gtk.gpointer, _: ?*gtk.GClosure) callconv(.C) void {}
 pub fn main() !void {
     const app = gtk.gtk_application_new("org.gtk.example", gtk.G_APPLICATION_FLAGS_NONE);
     defer gtk.g_object_unref(app);
-    try gvcAtHome.connect();
+    try gvcAtHome.connect(&clientAvailableCallback);
 
     _ = gtk.g_signal_connect_data(app, "activate", @ptrCast(&activate), null, &dispose, 0);
     _ = gtk.g_application_run(@ptrCast(app), 0, null);
+}
+
+fn clientAvailableCallback(client: gvcAtHome.Client) void {
+    std.log.debug("Client available: {s} ", .{client.name});
 }

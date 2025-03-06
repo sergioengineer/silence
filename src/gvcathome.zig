@@ -2,23 +2,25 @@ const std = @import("std");
 const pulse = @import("translations/pulseaudio.zig");
 const pulse_glib = @import("translations/glib-mainloop.zig");
 
-const GvcAtHome = struct { api: *pulse.struct_pa_mainloop_api, context: *pulse.struct_pa_context, main_loop: *pulse_glib.struct_pa_glib_mainloop };
+const ClientAvailabelCallback = *const fn (Client) void;
+const GvcAtHome = struct { api: *pulse.struct_pa_mainloop_api, context: *pulse.struct_pa_context, main_loop: *pulse_glib.struct_pa_glib_mainloop, client_available_callback: ClientAvailabelCallback };
+pub const Client = struct { id: usize, name: [*c]const u8, pid: usize };
+
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 var pulse_connection: ?GvcAtHome = null;
-const Client = struct { id: usize, name: [*c]const u8, pid: usize };
 var clients = std.AutoHashMap(usize, Client).init(gpa.allocator());
 
 pub fn destroy() void {
     clients.deinit();
 }
 
-pub fn getAllClients() []Client {
-    const client_array = try std.BoundedArray(Client, clients.count()).init(clients.count());
+pub fn getClients() []Client {
+    const items = clients.valueIterator().items[0..clients.count()];
 
-    return client_array;
+    return items;
 }
 
-pub fn connect() !void {
+pub fn connect(client_available_callback: *const fn (Client) void) !void {
     const mainloop = pulse_glib.pa_glib_mainloop_new(pulse_glib.g_main_context_default()) orelse {
         std.log.err("Error while setting up the mainloop", .{});
         return;
@@ -36,7 +38,7 @@ pub fn connect() !void {
         return;
     };
 
-    pulse_connection = GvcAtHome{ .api = @ptrCast(api), .context = context, .main_loop = mainloop };
+    pulse_connection = GvcAtHome{ .api = @ptrCast(api), .context = context, .main_loop = mainloop, .client_available_callback = client_available_callback };
     pulse.pa_proplist_free(proplist);
     pulse.pa_context_set_state_callback(context, &contextStateCallback, null);
     const connection_result = pulse.pa_context_connect(context, null, pulse.PA_CONTEXT_NOFAIL, null);
@@ -58,10 +60,11 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
         return;
     }
 
+    if (pulse_connection == null) return;
+
     if (pulse.pa_proplist_contains(info.?.proplist, "application.process.id") < 1)
         return;
 
-    const name = info.?.name;
     const pid_str = pulse.pa_proplist_gets(info.?.proplist, "application.process.id");
     const pid_fat: [:0]u8 = std.mem.span(@constCast(pid_str));
 
@@ -69,12 +72,12 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
         std.log.err("Coudln't parse pid", .{});
         return;
     };
-    const proplist = pulse.pa_proplist_to_string(info.?.proplist);
-    std.log.debug("Client name: {s}, id: {}, pid: {}, prop: {s}", .{ name, info.?.index, pid, proplist });
 
-    clients.put(info.?.index, Client{ .id = info.?.index, .name = info.?.name, .pid = pid }) catch {
+    const client = Client{ .id = info.?.index, .name = info.?.name, .pid = pid };
+    clients.put(info.?.index, client) catch {
         return;
     };
+    pulse_connection.?.client_available_callback(client);
 }
 
 fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) void {
