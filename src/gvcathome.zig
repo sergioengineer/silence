@@ -2,8 +2,8 @@ const std = @import("std");
 const pulse = @import("translations/pulseaudio.zig");
 const pulse_glib = @import("translations/glib-mainloop.zig");
 
-const ClientAvailabelCallback = *const fn (Client) void;
-const GvcAtHome = struct { api: *pulse.struct_pa_mainloop_api, context: *pulse.struct_pa_context, main_loop: *pulse_glib.struct_pa_glib_mainloop, client_available_callback: ClientAvailabelCallback };
+const ClientAvailablelCallback = *const fn (Client) void;
+const GvcAtHome = struct { api: *pulse.struct_pa_mainloop_api, context: *pulse.struct_pa_context, main_loop: *pulse_glib.struct_pa_glib_mainloop, client_available_callback: ClientAvailablelCallback };
 pub const Client = struct { id: usize, name: [*c]const u8, pid: usize };
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
