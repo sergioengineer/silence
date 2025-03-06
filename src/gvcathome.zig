@@ -1,7 +1,6 @@
 const std = @import("std");
 const pulse = @import("translations/pulseaudio.zig");
 const pulse_glib = @import("translations/glib-mainloop.zig");
-const std_c = @import("translations/string.zig");
 
 const GvcAtHome = struct { api: *pulse.struct_pa_mainloop_api, context: *pulse.struct_pa_context, main_loop: *pulse_glib.struct_pa_glib_mainloop };
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -21,7 +20,7 @@ pub fn getAllClients() []Client {
 
 pub fn connect() !void {
     const mainloop = pulse_glib.pa_glib_mainloop_new(pulse_glib.g_main_context_default()) orelse {
-        std.log.debug("Error while setting up the mainloop", .{});
+        std.log.err("Error while setting up the mainloop", .{});
         return;
     };
     const api = pulse_glib.pa_glib_mainloop_get_api(mainloop);
@@ -33,7 +32,7 @@ pub fn connect() !void {
     _ = pulse.pa_proplist_sets(proplist, pulse.PA_PROP_APPLICATION_VERSION, "0.0.1");
 
     const context = pulse.pa_context_new_with_proplist(@ptrCast(api), null, proplist) orelse {
-        std.log.debug("Error while setting up the context", .{});
+        std.log.err("Error while setting up the context", .{});
         return;
     };
 
@@ -42,7 +41,7 @@ pub fn connect() !void {
     pulse.pa_context_set_state_callback(context, &contextStateCallback, null);
     const connection_result = pulse.pa_context_connect(context, null, pulse.PA_CONTEXT_NOFAIL, null);
     if (connection_result < 0) {
-        std.log.debug("Connection failed", .{});
+        std.log.err("Connection failed", .{});
     }
 
     std.log.debug("finished setup", .{});
@@ -85,7 +84,7 @@ fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) vo
     }
 
     const operation_client = pulse.pa_context_get_client_info_list(pulse_connection.?.context, @ptrCast(&clientInfoCallback), null) orelse {
-        std.log.debug("Info client error", .{});
+        std.log.err("Info client error", .{});
         return;
     };
     pulse.pa_operation_unref(operation_client);
