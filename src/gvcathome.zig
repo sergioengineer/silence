@@ -2,12 +2,12 @@ const std = @import("std");
 const pulse = @import("translations/pulseaudio.zig");
 const pulse_glib = @import("translations/glib-mainloop.zig");
 
-const ClientAvailablelCallback = *const fn (Client) void;
-const GvcAtHome = struct { api: *pulse.struct_pa_mainloop_api, context: *pulse.struct_pa_context, main_loop: *pulse_glib.struct_pa_glib_mainloop, client_available_callback: ClientAvailablelCallback };
+const ClientAvailableCallback = *const fn (Client) void;
+const GvcAtHome = struct { api: *pulse.struct_pa_mainloop_api, context: *pulse.struct_pa_context, main_loop: *pulse_glib.struct_pa_glib_mainloop, client_available_callback: ClientAvailableCallback };
 pub const Client = struct { id: usize, name: [*c]const u8, pid: usize };
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-var pulse_connection: ?GvcAtHome = null;
+var pulse_connection: GvcAtHome = undefined;
 var clients = std.AutoHashMap(usize, Client).init(gpa.allocator());
 
 pub fn destroy() void {
@@ -46,7 +46,7 @@ pub fn connect(client_available_callback: *const fn (Client) void) !void {
         std.log.err("Connection failed", .{});
     }
 
-    std.log.debug("finished setup", .{});
+    std.log.info("finished setup", .{});
 }
 
 fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info, eol: c_int, data: ?*anyopaque) callconv(.C) void {
@@ -57,9 +57,6 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
         return;
 
     if (info.?.proplist == null)
-        return;
-
-    if (pulse_connection == null)
         return;
 
     if (pulse.pa_proplist_contains(info.?.proplist, "application.process.id") < 1)
@@ -77,7 +74,8 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
     clients.put(info.?.index, client) catch {
         return;
     };
-    pulse_connection.?.client_available_callback(client);
+
+    pulse_connection.client_available_callback(client);
 }
 
 fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) void {
@@ -86,7 +84,7 @@ fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) vo
         return;
     }
 
-    const operation_client = pulse.pa_context_get_client_info_list(pulse_connection.?.context, @ptrCast(&clientInfoCallback), null) orelse {
+    const operation_client = pulse.pa_context_get_client_info_list(pulse_connection.context, @ptrCast(&clientInfoCallback), null) orelse {
         std.log.err("Info client error", .{});
         return;
     };
