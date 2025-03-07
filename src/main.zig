@@ -43,13 +43,19 @@ fn clientAvailableCallback(client: *const gvcAtHome.Client) void {
     createClientElement(client);
 }
 
+const ToggleEvent = std.meta.Tuple(&.{ *const gvcAtHome.Client, *const gtk.GtkWidget });
 fn toggled(data: gtk.gpointer) void {
     if (data == null) {
         std.log.debug("data was null", .{});
         return;
     }
-    const client: *const gvcAtHome.Client = @ptrCast(@alignCast(data));
-    std.debug.print("Checked! {s}", .{client.name});
+
+    const event: *const ToggleEvent = @ptrCast(@alignCast(data));
+    const client: *const gvcAtHome.Client = event.@"0";
+    const checkbox: *const gtk.GtkWidget = event.@"1";
+    const checked = gtk.gtk_check_button_get_active(@constCast(@ptrCast(checkbox))) == 1;
+
+    std.debug.print("Checked! {s} {}\n", .{ client.name, checked });
 }
 
 fn createClientElement(client: *const gvcAtHome.Client) void {
@@ -59,7 +65,11 @@ fn createClientElement(client: *const gvcAtHome.Client) void {
     const checkbox = gtk.gtk_check_button_new();
     const label = gtk.gtk_label_new(client.name.ptr);
 
-    _ = gtk.g_signal_connect_data(checkbox, "toggled", @ptrCast(&toggled), @constCast(&client.*), &dispose, 0);
+    const event = std.heap.c_allocator.create(ToggleEvent) catch {
+        return;
+    };
+    event.* = .{ client, checkbox };
+    _ = gtk.g_signal_connect_data(checkbox, "toggled", @ptrCast(&toggled), @constCast(event), &dispose, 0);
 
     gtk.gtk_grid_attach(container, checkbox, 0, 1, 1, 1);
     gtk.gtk_grid_attach(container, label, 1, 1, 2, 1);

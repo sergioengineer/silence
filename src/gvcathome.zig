@@ -21,12 +21,9 @@ pub const Sink = struct {
     }
 };
 pub const SinkListCallback = *const fn (Sink) void;
-pub const PaSinkInfo = pulse.pa_sink_info;
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 var pulse_connection: ?GvcAtHome = null;
-
-pub fn destroy() void {}
 
 const ConnectError = error{
     AlreadyConnected,
