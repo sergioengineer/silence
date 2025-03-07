@@ -34,22 +34,32 @@ pub fn main() !void {
     _ = gtk.g_application_run(@ptrCast(app), 0, null);
 }
 
-fn clientAvailableCallback(client: gvcAtHome.Client) void {
+fn clientAvailableCallback(client: *const gvcAtHome.Client) void {
     if (ui == null) {
         return;
     }
 
-    std.log.info("Client available: {s} ", .{client.name});
-
+    std.log.info("Client available: {s} - {} ", .{ client.name, client.id });
     createClientElement(client);
 }
 
-fn createClientElement(client: gvcAtHome.Client) void {
+fn toggled(data: gtk.gpointer) void {
+    if (data == null) {
+        std.log.debug("data was null", .{});
+        return;
+    }
+    const client: *const gvcAtHome.Client = @ptrCast(@alignCast(data));
+    std.debug.print("Checked! {s}", .{client.name});
+}
+
+fn createClientElement(client: *const gvcAtHome.Client) void {
     if (ui == null) return;
 
     const container: *gtk.GtkGrid = @ptrCast(gtk.gtk_grid_new());
     const checkbox = gtk.gtk_check_button_new();
-    const label = gtk.gtk_label_new(client.name);
+    const label = gtk.gtk_label_new(client.name.ptr);
+
+    _ = gtk.g_signal_connect_data(checkbox, "toggled", @ptrCast(&toggled), @constCast(&client.*), &dispose, 0);
 
     gtk.gtk_grid_attach(container, checkbox, 0, 1, 1, 1);
     gtk.gtk_grid_attach(container, label, 1, 1, 2, 1);

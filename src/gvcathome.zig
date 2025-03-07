@@ -2,9 +2,26 @@ const std = @import("std");
 const pulse = @import("translations/pulseaudio.zig");
 const pulse_glib = @import("translations/glib-mainloop.zig");
 
-const ClientAvailableCallback = *const fn (Client) void;
+const ClientAvailableCallback = *const fn (*const Client) void;
 const GvcAtHome = struct { api: *pulse.struct_pa_mainloop_api, context: *pulse.struct_pa_context, main_loop: *pulse_glib.struct_pa_glib_mainloop, client_available_callback: ClientAvailableCallback };
-pub const Client = struct { id: usize, name: [*c]const u8, pid: usize };
+pub const Client = struct { id: usize, name: []const u8, pid: usize };
+pub const Sink = struct {
+    info: *pulse.pa_sink_input_info,
+
+    fn mute(self: Sink) void {
+        if (pulse_connection == null) return;
+        const operation = pulse.pa_context_set_sink_mute_by_index(pulse_connection.?.context, self.info.index, 1, null, null);
+        pulse.pa_operation_unref(operation);
+    }
+
+    fn unmute(self: Sink) void {
+        if (pulse_connection == null) return;
+        const operation = pulse.pa_context_set_sink_mute_by_index(pulse_connection.?.context, self.info.index, 0, null, null);
+        pulse.pa_operation_unref(operation);
+    }
+};
+pub const SinkListCallback = *const fn (Sink) void;
+pub const PaSinkInfo = pulse.pa_sink_info;
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 var pulse_connection: ?GvcAtHome = null;
@@ -24,7 +41,14 @@ const ConnectError = error{
     AlreadyConnected,
 };
 
-pub fn connect(client_available_callback: *const fn (Client) void) !void {
+pub fn getSinks(sink_list_callback: SinkListCallback) void {
+    if (pulse_connection == null) return;
+
+    const operation = pulse.pa_context_get_sink_input_info_list(pulse_connection.?.context, &sinkInfoCallback, sink_list_callback);
+    pulse.pa_operation_unref(operation);
+}
+
+pub fn connect(client_available_callback: ClientAvailableCallback) !void {
     if (pulse_connection != null) {
         return ConnectError.AlreadyConnected;
     }
@@ -57,6 +81,26 @@ pub fn connect(client_available_callback: *const fn (Client) void) !void {
     std.log.info("finished setup", .{});
 }
 
+fn sinkInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_sink_input_info, eol: c_int, data: ?SinkListCallback) callconv(.C) void {
+    _ = eol;
+    _ = context;
+    if (info == null)
+        return;
+
+    if (info.?.proplist == null)
+        return;
+
+    if (pulse_connection == null)
+        return;
+
+    const proplist = pulse.pa_proplist_to_string(info.?.proplist);
+    std.log.debug("id: {},proplist: {s}", .{ info.?.client, proplist });
+
+    const sink = Sink{ .info = info.? };
+    if (data != null)
+        data.?(sink);
+}
+
 fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info, eol: c_int, data: ?*anyopaque) callconv(.C) void {
     _ = eol;
     _ = context;
@@ -74,6 +118,7 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
         return;
 
     const pid_str = pulse.pa_proplist_gets(info.?.proplist, "application.process.id");
+    if (pid_str == null) return;
     const pid_fat: [:0]u8 = std.mem.span(@constCast(pid_str));
 
     const pid = std.fmt.parseInt(usize, pid_fat, 10) catch {
@@ -81,8 +126,21 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
         return;
     };
 
-    const client = Client{ .id = info.?.index, .name = info.?.name, .pid = pid };
-    clients.put(info.?.index, client) catch {
+    const allocator = gpa.allocator();
+    const index: usize = info.?.index;
+    const name_len = std.mem.len(info.?.name);
+    const name = allocator.alloc(u8, name_len) catch {
+        return;
+    };
+
+    std.mem.copyForwards(u8, name, std.mem.span(@constCast(info.?.name)));
+    const client = allocator.create(Client) catch {
+        return;
+    };
+    client.* = .{ .id = index, .name = name, .pid = pid };
+
+    std.debug.print("alocando: {s} \n", .{client.name});
+    clients.put(info.?.index, client.*) catch {
         return;
     };
 
@@ -100,4 +158,7 @@ fn contextStateCallback(ctx: ?*pulse.pa_context, _: ?*anyopaque) callconv(.C) vo
         return;
     };
     pulse.pa_operation_unref(operation_client);
+
+    const operation = pulse.pa_context_get_sink_input_info_list(pulse_connection.?.context, @ptrCast(&sinkInfoCallback), null);
+    pulse.pa_operation_unref(operation);
 }
