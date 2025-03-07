@@ -25,17 +25,8 @@ pub const PaSinkInfo = pulse.pa_sink_info;
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 var pulse_connection: ?GvcAtHome = null;
-var clients = std.AutoHashMap(usize, Client).init(gpa.allocator());
 
-pub fn destroy() void {
-    clients.deinit();
-}
-
-pub fn getClients() []Client {
-    const items = clients.valueIterator().items[0..clients.count()];
-
-    return items;
-}
+pub fn destroy() void {}
 
 const ConnectError = error{
     AlreadyConnected,
@@ -140,10 +131,6 @@ fn clientInfoCallback(context: ?*pulse.pa_context, info: ?*pulse.pa_client_info,
     client.* = .{ .id = index, .name = name, .pid = pid };
 
     std.debug.print("alocando: {s} \n", .{client.name});
-    clients.put(info.?.index, client.*) catch {
-        return;
-    };
-
     pulse_connection.?.client_available_callback(client);
 }
 
