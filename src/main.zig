@@ -2,6 +2,7 @@ const std = @import("std");
 const gtk = @import("translations/gtk.zig");
 const gvcAtHome = @import("gvcathome.zig");
 
+
 const UI = struct { window: *gtk.GtkWindow, list_box: *gtk.GtkListBox };
 var ui: ?UI = null;
 
